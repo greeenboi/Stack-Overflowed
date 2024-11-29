@@ -51,6 +51,16 @@ Distributed under the MIT License, because even chaos needs some legal boundarie
 
 Remember: If your code breaks, it's not a bug, it's a feature. And if anyone asks, we totally meant for that to happen. See `LICENSE` for the formal "we're not responsible for your div nightmares" disclaimer. 😅
 
+## 🔨 Building
+
+To build this masterpiece into a Windows executable (because some people just want to watch the world burn from an .exe):
+
+```bash
+bundle install
+```
+```bash
+ocran main.rb --windows --icon C:\Users\$USER\<dir>\game\assets\images\logo.ico --output StackOverflowed --verbose       
+```
 ---
 
 > "I don't always center my divs, but when I do, I use 47 nested divs with !important"  
