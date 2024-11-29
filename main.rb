@@ -38,7 +38,7 @@ class DivCenteringGame < Gosu::Window
     @game_over_font = Gosu::Font.new(self, Gosu.default_font_name, 40)
 
     # Other initializations
-    @background_color = Gosu::Color.new(255, 240, 240, 240)
+    @background_color = Gosu::Color.new(255, 240, 240, 240) 
     @drop_sound = Gosu::Sample.new('assets/drop.wav')
     @fail_sound = Gosu::Sample.new('assets/fail.wav')
     @fail_sound2 = Gosu::Sample.new('assets/fail2.wav')
@@ -55,6 +55,11 @@ class DivCenteringGame < Gosu::Window
       # Gosu::Song.new('assets/bgm3.mp3')
     ]
     @current_track = nil
+
+    # Load images
+    @logo = Gosu::Image.new('assets/images/logo.png')
+    @div_texture = Gosu::Image.new('assets/images/div_texture.png')
+    @background_texture = Gosu::Image.new('assets/images/background.png')
 
     # Spawn first moving div
     @initial_width = 500  # Start with wide platforms
@@ -274,8 +279,28 @@ class DivCenteringGame < Gosu::Window
   end
 
   def draw_home_screen
+    # Draw background texture at full opacity
+    @background_texture.draw(
+      0, 0, 0,
+      width.to_f / @background_texture.width,
+      height.to_f / @background_texture.height,
+      Gosu::Color::WHITE  # Full opacity
+    )
+    
+    # Remove the duplicate background rect drawing that was here
+    
+    # Draw logo
+    scale = 0.5  # Adjust scale as needed
+    @logo.draw(
+      width / 2 - (@logo.width * scale) / 2,
+      height / 4 - (@logo.height * scale) / 2,
+      1,
+      scale,
+      scale
+    )
+
     # Background
-    Gosu.draw_rect(0, 0, width, height, @background_color, 0)
+    # Gosu.draw_rect(0, 0, width, height, @background_color, 0)
     
     # Title and subtitle
     title_text = "Stack Overflowed"
@@ -320,16 +345,21 @@ class DivCenteringGame < Gosu::Window
   end
 
   def draw_game_screen
-    # Background
-    Gosu.draw_rect(0, 0, width, height, @background_color, 0)
-
-    # Game area border
-    Gosu.draw_rect(
-      @game_x_start, 0,
-      @game_width, height,
-      Gosu::Color.new(255, 200, 200, 200),
-      1
+    # Draw background texture at full opacity
+    @background_texture.draw(
+      0, 0, 0,
+      width.to_f / @background_texture.width,
+      height.to_f / @background_texture.height,
+      # Gosu::Color::WHITE  # Full opacity
     )
+    
+    # Draw game area border
+    # Gosu.draw_rect(
+    #   @game_x_start, 0,
+    #   @game_width, height,
+    #   Gosu::Color.new(255, 200, 200, 200),
+    #   1
+    # )
 
     # Title
     @title_font.draw_text(
@@ -345,30 +375,26 @@ class DivCenteringGame < Gosu::Window
       1, 1, Gosu::Color::BLACK
     )
 
-    # Draw stacked divs
+    # Draw stacked divs with texture
     @divs.each do |div|
       x = div[:actual_x] || case div[:actual_alignment]
-          when :far_left
-            @game_x_start
-          when :left
-            @game_x_start + @game_width / 7
-          when :center_left
-            @game_x_start + (@game_width * 2) / 7
-          when :center
-            @game_x_start + (@game_width - div[:width]) / 2
-          when :center_right
-            @game_x_start + (@game_width * 4) / 7
-          when :right
-            @game_x_start + (@game_width * 5) / 7
-          when :far_right
-            @game_x_start + @game_width - div[:width]
+          when :far_left then @game_x_start
+          when :left then @game_x_start + @game_width / 7
+          when :center_left then @game_x_start + (@game_width * 2) / 7
+          when :center then @game_x_start + (@game_width - div[:width]) / 2
+          when :center_right then @game_x_start + (@game_width * 4) / 7
+          when :right then @game_x_start + (@game_width * 5) / 7
+          when :far_right then @game_x_start + @game_width - div[:width]
           end
 
-      Gosu.draw_rect(
-        x, height - div[:y] - @div_height,
-        div[:width], @div_height,
-        div[:color],
-        2
+      # Draw div with texture and color tint
+      @div_texture.draw(
+        x,
+        height - div[:y] - @div_height,
+        2,
+        div[:width].to_f / @div_texture.width,
+        @div_height.to_f / @div_texture.height,
+        div[:color]
       )
 
       # Div text
@@ -382,7 +408,7 @@ class DivCenteringGame < Gosu::Window
       )
     end
 
-    # Draw current moving/descending div
+    # Draw current moving/descending div with texture
     if @current_div
       x = @descending ? 
         (@current_div[:actual_x] || case @current_div[:actual_alignment]
@@ -403,11 +429,13 @@ class DivCenteringGame < Gosu::Window
          end) : 
         @current_div_x
 
-      Gosu.draw_rect(
-        x, @current_div_y,
-        @current_div[:width], @div_height,
-        @current_div[:color],
-        2
+      @div_texture.draw(
+        x,
+        @current_div_y,
+        2,
+        @current_div[:width].to_f / @div_texture.width,
+        @div_height.to_f / @div_texture.height,
+        @current_div[:color]
       )
     end
 
