@@ -44,6 +44,7 @@ class DivCenteringGame < Gosu::Window
     @fail_sound3 = Gosu::Sample.new('assets/fail3.wav')
     @fail_sound4 = Gosu::Sample.new('assets/fail4.wav')
     @start_sound = Gosu::Sample.new('assets/start.wav')
+    @scoreup_sound = Gosu::Sample.new('assets/scoreup.wav')
     @div_height = 50
     @game_width = 800   
     @game_x_start = (width - @game_width) / 2
@@ -52,10 +53,11 @@ class DivCenteringGame < Gosu::Window
     @bg_tracks = [
       Gosu::Song.new('assets/bgm1.wav'),
       Gosu::Song.new('assets/bgm2.wav'),
-      Gosu::Song.new('assets/bgm3.mp3'),
-      Gosu::Song.new('assets/bgm4.mp3')
+      Gosu::Song.new('assets/bgm3.wav'),
+      Gosu::Song.new('assets/bgm4.wav')
     ]
     @current_track = nil
+    @bg_volume = 0.3  # Add this line to control background volume
 
     
     @logo = Gosu::Image.new('assets/images/logo.png')
@@ -71,11 +73,17 @@ class DivCenteringGame < Gosu::Window
     @state = :home
     @home_options = ['Play', 'Exit']
     @selected_option = 0
+
+    @initial_speed = 5
+    @speed_increment = 1
+    @flicker_duration = 0
+    @flicker_max_duration = 10  # Number of frames the flicker lasts
   end
 
   def play_random_bgm
     @current_track&.stop
     @current_track = @bg_tracks.sample
+    @current_track.volume = @bg_volume  # Set the volume
     @current_track.play(true) # true means loop
   end
 
@@ -212,6 +220,9 @@ class DivCenteringGame < Gosu::Window
 
   def update
     return if @game_over
+    
+    # Update flicker
+    @flicker_duration -= 1 if @flicker_duration > 0
 
     if @descending
       # Descend
@@ -257,6 +268,13 @@ class DivCenteringGame < Gosu::Window
       @divs.each { |div| div[:y] -= scroll_amount }
       @divs.reject! { |div| div[:y] < 0 }
     end
+
+    # Check for score milestones
+    if @score > 0 && @score % 10 == 0
+      @current_div_speed += @speed_increment
+      @scoreup_sound.play
+      @flicker_duration = @flicker_max_duration  # Trigger flicker effect
+    end
   end
 
   def reset_game
@@ -264,6 +282,7 @@ class DivCenteringGame < Gosu::Window
     @game_over = false
     @divs = []
     @scroll_offset = 0
+    @current_div_speed = @initial_speed
     @start_sound.play  
     spawn_moving_div
     @state = :playing
@@ -426,6 +445,16 @@ class DivCenteringGame < Gosu::Window
         @current_div[:width].to_f / @div_texture.width,
         @div_height.to_f / @div_texture.height,
         @current_div[:color]
+      )
+    end
+
+    # Draw flicker effect overlay
+    if @flicker_duration > 0
+      flash_opacity = (@flicker_duration.to_f / @flicker_max_duration * 100).to_i
+      Gosu.draw_rect(
+        0, 0, width, height,
+        Gosu::Color.new(flash_opacity, 255, 255, 255),
+        999  #z index
       )
     end
 
