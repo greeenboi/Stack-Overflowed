@@ -3,7 +3,7 @@ require 'gosu'
 class DivCenteringGame < Gosu::Window
   def initialize
     super 1024, 600, false  # Increased window width
-    self.caption = "Div Centering Tower"
+    self.caption = "Stack Overflowed"
 
     # Game state variables
     @score = 0
@@ -41,6 +41,8 @@ class DivCenteringGame < Gosu::Window
     @background_color = Gosu::Color.new(255, 240, 240, 240)
     @drop_sound = Gosu::Sample.new('assets/drop.wav')
     @fail_sound = Gosu::Sample.new('assets/fail.wav')
+    @fail_sound2 = Gosu::Sample.new('assets/fail2.wav')
+    @fail_sound3 = Gosu::Sample.new('assets/fail3.wav')
     @start_sound = Gosu::Sample.new('assets/start.wav')  # Add this line
     @div_height = 50
     @game_width = 600   # Increased from 400
@@ -125,6 +127,11 @@ class DivCenteringGame < Gosu::Window
     end
   end
 
+  def play_fail_sound
+    sounds = [@fail_sound2, @fail_sound3]
+    sounds.sample.play
+  end
+
   def place_div
     return if @game_over || @current_div.nil? || @descending
 
@@ -144,11 +151,11 @@ class DivCenteringGame < Gosu::Window
       
       if @current_div[:width] < @min_width
         @game_over = true
-        @fail_sound.play
+        play_fail_sound  # Changed from direct sound play to using the new method
       end
     else
       @game_over = true
-      @fail_sound.play
+      play_fail_sound  # Changed from direct sound play to using the new method
     end
   end
 
@@ -229,6 +236,7 @@ class DivCenteringGame < Gosu::Window
     @game_over = false
     @divs = []
     @scroll_offset = 0
+    @start_sound.play  
     spawn_moving_div
     @state = :playing
   end
@@ -246,11 +254,26 @@ class DivCenteringGame < Gosu::Window
     # Background
     Gosu.draw_rect(0, 0, width, height, @background_color, 0)
     
-    # Title
+    # Title and subtitle
+    title_text = "Stack Overflowed"
+    subtitle_text = "Align Me If You Can"
+    
+    # Center the title
+    title_width = @game_over_font.text_width(title_text)
     @game_over_font.draw_text(
-      "Div Centering Tower",
-      width / 2 - 150, height / 3,
+      title_text,
+      width / 2 - title_width / 2, 
+      height / 3,
       1, 1, 1, Gosu::Color::BLACK
+    )
+
+    # Center the subtitle with smaller font and darker color
+    subtitle_width = @title_font.text_width(subtitle_text)  # Using smaller font
+    @title_font.draw_text(
+      subtitle_text,
+      width / 2 - subtitle_width / 2,
+      height / 3 + 50,
+      1, 1, 1, Gosu::Color.new(255, 30, 30, 30)  # Slightly lighter than black
     )
 
     # Menu options
