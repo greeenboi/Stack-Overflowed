@@ -90,6 +90,23 @@ class DivCenteringGame < Gosu::Window
     @speed_increment = 1
     @flicker_duration = 0
     @flicker_max_duration = 10  # frames
+
+    # Add cache for fonts to avoid recreation
+    @cached_fonts = {}
+    
+    # Pre-calculate common values
+    @section_widths = (0..6).map { |i| @game_x_start + (@game_width * i) / 7 }
+    
+    # Cache alignment positions
+    @alignment_positions = {
+      far_left: @game_x_start,
+      left: @game_x_start + @game_width / 7,
+      center_left: @game_x_start + (@game_width * 2) / 7,
+      center: ->(width) { @game_x_start + (@game_width - width) / 2 },
+      center_right: @game_x_start + (@game_width * 4) / 7,
+      right: @game_x_start + (@game_width * 5) / 7,
+      far_right: ->(width) { @game_x_start + @game_width - width }
+    }
   end
 
   def play_random_bgm
@@ -252,34 +269,18 @@ class DivCenteringGame < Gosu::Window
   def update
     return if @game_over
     
-    # Update flicker
     @flicker_duration -= 1 if @flicker_duration > 0
 
     if @descending
-      # Descend
       @current_div_y += @descent_speed
-
-      # Check if div has reached the bottom of the stack
-      if @divs.empty? && @current_div_y >= height - @div_height
-        @score += 1
-        @drop_sound.play
-        @current_div[:y] = 0
-        @divs << @current_div
-        spawn_moving_div
-        check_and_scroll
-      elsif !@divs.empty? && @current_div_y >= height - (@divs.length + 1) * @div_height
-        @score += 1
-        @drop_sound.play
-        @current_div[:y] = @divs.length * @div_height
-        @divs << @current_div
-        spawn_moving_div
-        check_and_scroll
-      end
+      handle_descent
     else
+      # Calculate movement based on frame delta
+      delta = 1.0 / 60.0  # Target 60 FPS
+      movement = @current_div_speed * delta * 60
       
-      @current_div_x += @current_div_direction * @current_div_speed
+      @current_div_x += @current_div_direction * movement
 
-      
       if @current_div_x <= @game_x_start || 
          @current_div_x + @current_div[:width] >= @game_x_start + @game_width
         @current_div_direction *= -1
@@ -419,17 +420,9 @@ class DivCenteringGame < Gosu::Window
 
     
     @divs.each do |div|
-      x = div[:actual_x] || case div[:actual_alignment]
-          when :far_left then @game_x_start
-          when :left then @game_x_start + @game_width / 7
-          when :center_left then @game_x_start + (@game_width * 2) / 7
-          when :center then @game_x_start + (@game_width - div[:width]) / 2
-          when :center_right then @game_x_start + (@game_width * 4) / 7
-          when :right then @game_x_start + (@game_width * 5) / 7
-          when :far_right then @game_x_start + @game_width - div[:width]
-          end
-
+      x = calculate_div_position(div)
       
+      # Draw div texture
       @div_texture.draw(
         x,
         height - div[:y] - @div_height,
@@ -438,10 +431,9 @@ class DivCenteringGame < Gosu::Window
         @div_height.to_f / @div_texture.height,
         div[:color]
       )
-
       
-      font = Gosu::Font.new(self, Gosu.default_font_name, 20)
-      font.draw_text(
+      # Use cached font
+      get_cached_font(20).draw_text(
         div[:alignment].to_s,
         x + div[:width] / 2 - 20,
         height - div[:y] - @div_height + 15,
@@ -453,22 +445,7 @@ class DivCenteringGame < Gosu::Window
     
     if @current_div
       x = @descending ? 
-        (@current_div[:actual_x] || case @current_div[:actual_alignment]
-         when :far_left
-           @game_x_start
-         when :left
-           @game_x_start + @game_width / 7
-         when :center_left
-           @game_x_start + (@game_width * 2) / 7
-         when :center
-           @game_x_start + (@game_width - @current_div[:width]) / 2
-         when :center_right
-           @game_x_start + (@game_width * 4) / 7
-         when :right
-           @game_x_start + (@game_width * 5) / 7
-         when :far_right
-           @game_x_start + @game_width - @current_div[:width]
-         end) : 
+        calculate_div_position(@current_div) : 
         @current_div_x
 
       @div_texture.draw(
@@ -563,6 +540,36 @@ class DivCenteringGame < Gosu::Window
       height * 5/6,
       1, 1, 1, Gosu::Color::WHITE
     )
+  end
+
+  def get_cached_font(size)
+    @cached_fonts[size] ||= Gosu::Font.new(self, Gosu.default_font_name, size)
+  end
+
+  def calculate_div_position(div)
+    return div[:actual_x] if div[:actual_x]
+
+    pos = @alignment_positions[div[:actual_alignment] || div[:alignment]]
+    pos.is_a?(Proc) ? pos.call(div[:width]) : pos
+  end
+
+  private
+
+  def handle_descent
+    if @divs.empty? && @current_div_y >= height - @div_height
+      complete_descent(0)
+    elsif !@divs.empty? && @current_div_y >= height - (@divs.length + 1) * @div_height
+      complete_descent(@divs.length * @div_height)
+    end
+  end
+
+  def complete_descent(y_position)
+    @score += 1
+    @drop_sound.play
+    @current_div[:y] = y_position
+    @divs << @current_div
+    spawn_moving_div
+    check_and_scroll
   end
 end
 
