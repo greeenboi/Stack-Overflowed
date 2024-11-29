@@ -2,79 +2,117 @@ require 'gosu'
 
 class DivCenteringGame < Gosu::Window
   def initialize
-    super 1024, 600, false  # Increased window width
+    super 1024, 600, false  
     self.caption = "Stack Overflowed"
 
-    # Game state variables
+    # Game state 
     @score = 0
     @game_over = false
     @divs = []
 
-    # Scrolling variables
+    # Scrolling 
     @scroll_offset = 0
 
-    # Moving div variables
+    # Moving div 
     @current_div = nil
     @current_div_x = 0
     @current_div_y = 0
     @current_div_direction = 1
     @current_div_speed = 5
     @descending = false
-    @descent_speed = 50  # Increased from 10
+    @descent_speed = 50  
 
     # Colors
     @div_colors = [
       Gosu::Color.new(255, 59, 130, 246),  # Blue
       Gosu::Color.new(255, 255, 87, 34),   # Orange
-      Gosu::Color.new(255, 76, 175, 80)    # Green
+      Gosu::Color.new(255, 76, 175, 80),   # Green
+      Gosu::Color.new(255, 236, 72, 153),  # Pink
+      Gosu::Color.new(255, 168, 85, 247),  # Purple
+      Gosu::Color.new(255, 234, 179, 8),   # Yellow
+      Gosu::Color.new(255, 220, 38, 38),   # Red
+      Gosu::Color.new(255, 52, 211, 153)   # Teal
     ]
 
-    # Alignment options (expanded)
+    # Alignment options
     @alignment_options = [:far_left, :left, :center_left, :center, :center_right, :right, :far_right]
 
     # Fonts
-    @title_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 30)  # Changed to custom font
+    @title_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 30)  
     @score_font = Gosu::Font.new(self, Gosu.default_font_name, 24)
-    @game_over_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 40)  # Changed to custom font
+    @game_over_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 40)
 
-    # Other initializations
+    # Other
     @background_color = Gosu::Color.new(255, 240, 240, 240) 
     @drop_sound = Gosu::Sample.new('assets/drop.wav')
     @fail_sound = Gosu::Sample.new('assets/fail.wav')
-    @fail_sound2 = Gosu::Sample.new('assets/fail2.wav')
     @fail_sound3 = Gosu::Sample.new('assets/fail3.wav')
-    @start_sound = Gosu::Sample.new('assets/start.wav')  # Add this line
+    @fail_sound4 = Gosu::Sample.new('assets/fail4.wav')
+    @start_sound = Gosu::Sample.new('assets/start.wav')
+    @scoreup_sound = Gosu::Sample.new('assets/scoreup.wav')
     @div_height = 50
-    @game_width = 600   # Increased from 400
+    @game_width = 800   
     @game_x_start = (width - @game_width) / 2
 
-    # Background Music
+    # BGM
     @bg_tracks = [
       Gosu::Song.new('assets/bgm1.wav'),
       Gosu::Song.new('assets/bgm2.wav'),
-      # Gosu::Song.new('assets/bgm3.mp3')
+      Gosu::Song.new('assets/bgm3.wav'),
+      Gosu::Song.new('assets/bgm4.wav')
     ]
     @current_track = nil
+    @bg_volume = 0.3  # Add this line to control background volume
 
-    # Load images
+    
     @logo = Gosu::Image.new('assets/images/logo.png')
     @div_texture = Gosu::Image.new('assets/images/div_texture.png')
     @background_texture = Gosu::Image.new('assets/images/background.png')
     @main_menu_texture = Gosu::Image.new('assets/images/main_menu_bg.png')
 
-    # Spawn first moving div
-    @initial_width = 500  # Start with wide platforms
-    @min_width = 50      # Minimum platform width before game over
+   
+    @initial_width = 500  
+    @min_width = 50      
     spawn_moving_div
 
     @state = :home
-    @home_options = ['Play', 'Exit']
+    @home_options = ['Play', 'Credits', 'Exit']
     @selected_option = 0
+    
+    # Add credits screen variables
+    @credits_options = [
+      { name: 'greeenboi', url: 'https://github.com/greeenboi' },
+      { name: 'Vinay Rajan', url: 'https://github.com/vinay-04' }
+    ]
+    @credits_selected = 0
+
+    @initial_speed = 5
+    @speed_increment = 1
+    @flicker_duration = 0
+    @flicker_max_duration = 10  # frames
+
+    # Add cache for fonts to avoid recreation
+    @cached_fonts = {}
+    
+    # Pre-calculate common values
+    @section_widths = (0..6).map { |i| @game_x_start + (@game_width * i) / 7 }
+    
+    # Cache alignment positions
+    @alignment_positions = {
+      far_left: @game_x_start,
+      left: @game_x_start + @game_width / 7,
+      center_left: @game_x_start + (@game_width * 2) / 7,
+      center: ->(width) { @game_x_start + (@game_width - width) / 2 },
+      center_right: @game_x_start + (@game_width * 4) / 7,
+      right: @game_x_start + (@game_width * 5) / 7,
+      far_right: ->(width) { @game_x_start + @game_width - width }
+    }
   end
 
   def play_random_bgm
     @current_track&.stop
     @current_track = @bg_tracks.sample
+    @current_track.volume = @bg_volume  # Set the volume
     @current_track.play(true) # true means loop
   end
 
@@ -132,14 +170,33 @@ class DivCenteringGame < Gosu::Window
         @selected_option = (@selected_option + 1) % @home_options.length
       when Gosu::KB_RETURN
         case @selected_option
-        when 0
-          @start_sound.play  # Add this line
+        when 0  # Play
+          @start_sound.play  
           @state = :playing
           reset_game
           play_random_bgm
-        when 1
+        when 1  # Credits
+          @state = :credits
+        when 2  # Exit
           close
         end
+      end
+    when :credits
+      case id
+      when Gosu::KB_UP
+        @credits_selected = (@credits_selected - 1) % @credits_options.length
+      when Gosu::KB_DOWN
+        @credits_selected = (@credits_selected + 1) % @credits_options.length
+      when Gosu::KB_RETURN
+        if system('open', @credits_options[@credits_selected][:url]) # For macOS
+          # Success
+        elsif system('start', @credits_options[@credits_selected][:url]) # For Windows
+          # Success
+        elsif system('xdg-open', @credits_options[@credits_selected][:url]) # For Linux
+          # Success
+        end
+      when Gosu::KB_ESCAPE
+        @state = :home
       end
     when :playing
       case id
@@ -154,7 +211,7 @@ class DivCenteringGame < Gosu::Window
   end
 
   def play_fail_sound
-    sounds = [@fail_sound, @fail_sound3]
+    sounds = [@fail_sound, @fail_sound3, @fail_sound4]
     sounds.sample.play
   end
 
@@ -178,12 +235,12 @@ class DivCenteringGame < Gosu::Window
       if @current_div[:width] < @min_width
         @game_over = true
         stop_bgm
-        play_fail_sound  # Changed from direct sound play to using the new method
+        play_fail_sound  
       end
     else
       @game_over = true
       stop_bgm
-      play_fail_sound  # Changed from direct sound play to using the new method
+      play_fail_sound  
     end
   end
 
@@ -211,32 +268,19 @@ class DivCenteringGame < Gosu::Window
 
   def update
     return if @game_over
+    
+    @flicker_duration -= 1 if @flicker_duration > 0
 
     if @descending
-      # Slowly descend the div
       @current_div_y += @descent_speed
-
-      # Check if div has reached the bottom of the stack
-      if @divs.empty? && @current_div_y >= height - @div_height
-        @score += 1
-        @drop_sound.play
-        @current_div[:y] = 0
-        @divs << @current_div
-        spawn_moving_div
-        check_and_scroll
-      elsif !@divs.empty? && @current_div_y >= height - (@divs.length + 1) * @div_height
-        @score += 1
-        @drop_sound.play
-        @current_div[:y] = @divs.length * @div_height
-        @divs << @current_div
-        spawn_moving_div
-        check_and_scroll
-      end
+      handle_descent
     else
-      # Move the current div horizontally
-      @current_div_x += @current_div_direction * @current_div_speed
+      # Calculate movement based on frame delta
+      delta = 1.0 / 60.0  # Target 60 FPS
+      movement = @current_div_speed * delta * 60
+      
+      @current_div_x += @current_div_direction * movement
 
-      # Bounce off game area boundaries
       if @current_div_x <= @game_x_start || 
          @current_div_x + @current_div[:width] >= @game_x_start + @game_width
         @current_div_direction *= -1
@@ -245,7 +289,6 @@ class DivCenteringGame < Gosu::Window
   end
 
   def check_and_scroll
-    # Calculate total tower height
     tower_height = @divs.length * @div_height
 
     # If tower is more than half the screen height, scroll
@@ -253,9 +296,16 @@ class DivCenteringGame < Gosu::Window
       scroll_amount = tower_height - height / 2
       @scroll_offset += scroll_amount
       
-      # Remove scrolled-out divs
+      # Remove divs that are off the screen DONT REMOVE THIS!!
       @divs.each { |div| div[:y] -= scroll_amount }
       @divs.reject! { |div| div[:y] < 0 }
+    end
+
+    # Check for score milestones
+    if @score > 0 && @score % 10 == 0
+      @current_div_speed += @speed_increment
+      @scoreup_sound.play
+      @flicker_duration = @flicker_max_duration  # Trigger flicker effect
     end
   end
 
@@ -264,6 +314,7 @@ class DivCenteringGame < Gosu::Window
     @game_over = false
     @divs = []
     @scroll_offset = 0
+    @current_div_speed = @initial_speed
     @start_sound.play  
     spawn_moving_div
     @state = :playing
@@ -276,11 +327,12 @@ class DivCenteringGame < Gosu::Window
       draw_home_screen
     when :playing
       draw_game_screen
+    when :credits
+      draw_credits_screen
     end
   end
 
   def draw_home_screen
-    # Draw background texture at full opacity
     @main_menu_texture.draw(
       0, 0, 0,
       width.to_f / @main_menu_texture.width,
@@ -288,10 +340,7 @@ class DivCenteringGame < Gosu::Window
       Gosu::Color::WHITE  # Full opacity
     )
     
-    # Remove the duplicate background rect drawing that was here
-    
-    # Draw logo
-    scale = 0.5  # Adjust scale as needed
+    scale = 0.5
     @logo.draw(
       width / 2 - (@logo.width * scale) / 2,
       height / 4 - (@logo.height * scale) / 2,
@@ -300,14 +349,9 @@ class DivCenteringGame < Gosu::Window
       scale
     )
 
-    # Background
-    # Gosu.draw_rect(0, 0, width, height, @background_color, 0)
-    
-    # Title and subtitle
     title_text = "Stack Overflowed"
     subtitle_text = "Align Me If You Can"
     
-    # Center the title
     title_width = @game_over_font.text_width(title_text)
     @game_over_font.draw_text(
       title_text,
@@ -316,8 +360,8 @@ class DivCenteringGame < Gosu::Window
       1, 1, 1, Gosu::Color::WHITE
     )
 
-    # Center the subtitle with smaller font and darker color
-    subtitle_width = @title_font.text_width(subtitle_text)  # Using smaller font
+    
+    subtitle_width = @title_font.text_width(subtitle_text)
     @title_font.draw_text(
       subtitle_text,
       width / 2 - subtitle_width / 2,
@@ -327,16 +371,15 @@ class DivCenteringGame < Gosu::Window
 
     # Menu options
     @home_options.each_with_index do |option, index|
-      color = index == @selected_option ? Gosu::Color::RED : Gosu::Color::BLACK
+      color = index == @selected_option ? Gosu::Color::GREEN : Gosu::Color::GRAY
       @score_font.draw_text(
         option,
-        width / 2 - 30,
+        width / 2 - 33,
         height / 2 + index * 50,
         1, 1, 1, color
       )
     end
 
-    # Instructions
     @score_font.draw_text(
       "Use ↑↓ to select, Enter to confirm",
       width / 2 - 150,
@@ -346,12 +389,12 @@ class DivCenteringGame < Gosu::Window
   end
 
   def draw_game_screen
-    # Draw background texture at full opacity
+    
     @background_texture.draw(
       0, 0, 0,
       width.to_f / @background_texture.width,
       height.to_f / @background_texture.height,
-      # Gosu::Color::WHITE  # Full opacity
+      
     )
     
     Gosu.draw_rect(
@@ -361,33 +404,25 @@ class DivCenteringGame < Gosu::Window
       1
     )
 
-    # Title
+
     @title_font.draw_text(
       "Stack Overflowed",
       width / 2 - 220, 20, 2,
       1, 1, Gosu::Color::BLACK
     )
 
-    # Score
+   
     @score_font.draw_text(
       "Score: #{@score}",
       width / 2 - 50, 60, 2,
       1, 1, Gosu::Color::BLACK
     )
 
-    # Draw stacked divs with texture
+    
     @divs.each do |div|
-      x = div[:actual_x] || case div[:actual_alignment]
-          when :far_left then @game_x_start
-          when :left then @game_x_start + @game_width / 7
-          when :center_left then @game_x_start + (@game_width * 2) / 7
-          when :center then @game_x_start + (@game_width - div[:width]) / 2
-          when :center_right then @game_x_start + (@game_width * 4) / 7
-          when :right then @game_x_start + (@game_width * 5) / 7
-          when :far_right then @game_x_start + @game_width - div[:width]
-          end
-
-      # Draw div with texture and color tint
+      x = calculate_div_position(div)
+      
+      # Draw div texture
       @div_texture.draw(
         x,
         height - div[:y] - @div_height,
@@ -396,10 +431,9 @@ class DivCenteringGame < Gosu::Window
         @div_height.to_f / @div_texture.height,
         div[:color]
       )
-
-      # Div text
-      font = Gosu::Font.new(self, Gosu.default_font_name, 20)
-      font.draw_text(
+      
+      # Use cached font
+      get_cached_font(20).draw_text(
         div[:alignment].to_s,
         x + div[:width] / 2 - 20,
         height - div[:y] - @div_height + 15,
@@ -408,25 +442,10 @@ class DivCenteringGame < Gosu::Window
       )
     end
 
-    # Draw current moving/descending div with texture
+    
     if @current_div
       x = @descending ? 
-        (@current_div[:actual_x] || case @current_div[:actual_alignment]
-         when :far_left
-           @game_x_start
-         when :left
-           @game_x_start + @game_width / 7
-         when :center_left
-           @game_x_start + (@game_width * 2) / 7
-         when :center
-           @game_x_start + (@game_width - @current_div[:width]) / 2
-         when :center_right
-           @game_x_start + (@game_width * 4) / 7
-         when :right
-           @game_x_start + (@game_width * 5) / 7
-         when :far_right
-           @game_x_start + @game_width - @current_div[:width]
-         end) : 
+        calculate_div_position(@current_div) : 
         @current_div_x
 
       @div_texture.draw(
@@ -436,6 +455,16 @@ class DivCenteringGame < Gosu::Window
         @current_div[:width].to_f / @div_texture.width,
         @div_height.to_f / @div_texture.height,
         @current_div[:color]
+      )
+    end
+
+    # Draw flicker effect overlay
+    if @flicker_duration > 0
+      flash_opacity = (@flicker_duration.to_f / @flicker_max_duration * 100).to_i
+      Gosu.draw_rect(
+        0, 0, width, height,
+        Gosu::Color.new(flash_opacity, 255, 255, 255),
+        999  #z index
       )
     end
 
@@ -471,8 +500,79 @@ class DivCenteringGame < Gosu::Window
       2, 1, 1, Gosu::Color::BLACK
     )
   end
+
+  def draw_credits_screen
+    @main_menu_texture.draw(
+      0, 0, 0,
+      width.to_f / @main_menu_texture.width,
+      height.to_f / @main_menu_texture.height,
+      Gosu::Color::WHITE
+    )
+
+    title_text = "Credits"
+    title_width = @game_over_font.text_width(title_text)
+    @game_over_font.draw_text(
+      title_text,
+      width / 2 - title_width / 2,
+      height / 3,
+      1, 1, 1, Gosu::Color::WHITE
+    )
+
+    @credits_options.each_with_index do |credit, index|
+      color = index == @credits_selected ? Gosu::Color::RED : Gosu::Color::BLACK
+      @score_font.draw_text(
+        credit[:name],
+        width / 2 - 50,
+        height / 2 + index * 50,
+        1, 1, 1, color
+      )
+    end
+
+    @score_font.draw_text(
+      "Press ESC to go back",
+      width / 2 - 100,
+      height * 3/4,
+      1, 1, 1, Gosu::Color::WHITE
+    )
+    @score_font.draw_text(
+      "Press Enter to know more",
+      width / 2 - 120,
+      height * 5/6,
+      1, 1, 1, Gosu::Color::WHITE
+    )
+  end
+
+  def get_cached_font(size)
+    @cached_fonts[size] ||= Gosu::Font.new(self, Gosu.default_font_name, size)
+  end
+
+  def calculate_div_position(div)
+    return div[:actual_x] if div[:actual_x]
+
+    pos = @alignment_positions[div[:actual_alignment] || div[:alignment]]
+    pos.is_a?(Proc) ? pos.call(div[:width]) : pos
+  end
+
+  private
+
+  def handle_descent
+    if @divs.empty? && @current_div_y >= height - @div_height
+      complete_descent(0)
+    elsif !@divs.empty? && @current_div_y >= height - (@divs.length + 1) * @div_height
+      complete_descent(@divs.length * @div_height)
+    end
+  end
+
+  def complete_descent(y_position)
+    @score += 1
+    @drop_sound.play
+    @current_div[:y] = y_position
+    @divs << @current_div
+    spawn_moving_div
+    check_and_scroll
+  end
 end
 
-# Run the game
+
 window = DivCenteringGame.new
 window.show
