@@ -33,9 +33,9 @@ class DivCenteringGame < Gosu::Window
     @alignment_options = [:far_left, :left, :center_left, :center, :center_right, :right, :far_right]
 
     # Fonts
-    @title_font = Gosu::Font.new(self, Gosu.default_font_name, 30)
+    @title_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 30)  # Changed to custom font
     @score_font = Gosu::Font.new(self, Gosu.default_font_name, 24)
-    @game_over_font = Gosu::Font.new(self, Gosu.default_font_name, 40)
+    @game_over_font = Gosu::Font.new(self, 'assets/Coconut.ttf', 40)  # Changed to custom font
 
     # Other initializations
     @background_color = Gosu::Color.new(255, 240, 240, 240) 
@@ -60,6 +60,7 @@ class DivCenteringGame < Gosu::Window
     @logo = Gosu::Image.new('assets/images/logo.png')
     @div_texture = Gosu::Image.new('assets/images/div_texture.png')
     @background_texture = Gosu::Image.new('assets/images/background.png')
+    @main_menu_texture = Gosu::Image.new('assets/images/main_menu_bg.png')
 
     # Spawn first moving div
     @initial_width = 500  # Start with wide platforms
@@ -280,10 +281,10 @@ class DivCenteringGame < Gosu::Window
 
   def draw_home_screen
     # Draw background texture at full opacity
-    @background_texture.draw(
+    @main_menu_texture.draw(
       0, 0, 0,
-      width.to_f / @background_texture.width,
-      height.to_f / @background_texture.height,
+      width.to_f / @main_menu_texture.width,
+      height.to_f / @main_menu_texture.height,
       Gosu::Color::WHITE  # Full opacity
     )
     
@@ -312,7 +313,7 @@ class DivCenteringGame < Gosu::Window
       title_text,
       width / 2 - title_width / 2, 
       height / 3,
-      1, 1, 1, Gosu::Color::BLACK
+      1, 1, 1, Gosu::Color::WHITE
     )
 
     # Center the subtitle with smaller font and darker color
@@ -321,7 +322,7 @@ class DivCenteringGame < Gosu::Window
       subtitle_text,
       width / 2 - subtitle_width / 2,
       height / 3 + 50,
-      1, 1, 1, Gosu::Color.new(255, 30, 30, 30)  # Slightly lighter than black
+      1, 1, 1, Gosu::Color.new(255, 200, 200, 200)
     )
 
     # Menu options
@@ -340,7 +341,7 @@ class DivCenteringGame < Gosu::Window
       "Use ↑↓ to select, Enter to confirm",
       width / 2 - 150,
       height * 3/4,
-      1, 1, 1, Gosu::Color::BLACK
+      1, 1, 1, Gosu::Color::WHITE
     )
   end
 
@@ -353,18 +354,17 @@ class DivCenteringGame < Gosu::Window
       # Gosu::Color::WHITE  # Full opacity
     )
     
-    # Draw game area border
-    # Gosu.draw_rect(
-    #   @game_x_start, 0,
-    #   @game_width, height,
-    #   Gosu::Color.new(255, 200, 200, 200),
-    #   1
-    # )
+    Gosu.draw_rect(
+      @game_x_start, 0,
+      @game_width, height,
+      Gosu::Color.new(100, 200, 200, 200),
+      1
+    )
 
     # Title
     @title_font.draw_text(
       "Stack Overflowed",
-      width / 2 - 100, 20, 2,
+      width / 2 - 220, 20, 2,
       1, 1, Gosu::Color::BLACK
     )
 
@@ -448,7 +448,7 @@ class DivCenteringGame < Gosu::Window
       )
       @game_over_font.draw_text(
         "Game Over!",
-        width / 2 - 100, height / 2 - 50,
+        width / 2 - 170, height / 2 - 50,
         101, 1, 1, Gosu::Color::WHITE
       )
       @score_font.draw_text(
