@@ -26,7 +26,12 @@ class DivCenteringGame < Gosu::Window
     @div_colors = [
       Gosu::Color.new(255, 59, 130, 246),  # Blue
       Gosu::Color.new(255, 255, 87, 34),   # Orange
-      Gosu::Color.new(255, 76, 175, 80)    # Green
+      Gosu::Color.new(255, 76, 175, 80),   # Green
+      Gosu::Color.new(255, 236, 72, 153),  # Pink
+      Gosu::Color.new(255, 168, 85, 247),  # Purple
+      Gosu::Color.new(255, 234, 179, 8),   # Yellow
+      Gosu::Color.new(255, 220, 38, 38),   # Red
+      Gosu::Color.new(255, 52, 211, 153)   # Teal
     ]
 
     # Alignment options
@@ -71,13 +76,20 @@ class DivCenteringGame < Gosu::Window
     spawn_moving_div
 
     @state = :home
-    @home_options = ['Play', 'Exit']
+    @home_options = ['Play', 'Credits', 'Exit']
     @selected_option = 0
+    
+    # Add credits screen variables
+    @credits_options = [
+      { name: 'greeenboi', url: 'https://github.com/greeenboi' },
+      { name: 'Vinay Rajan', url: 'https://github.com/vinay-04' }
+    ]
+    @credits_selected = 0
 
     @initial_speed = 5
     @speed_increment = 1
     @flicker_duration = 0
-    @flicker_max_duration = 10  # Number of frames the flicker lasts
+    @flicker_max_duration = 10  # frames
   end
 
   def play_random_bgm
@@ -141,14 +153,33 @@ class DivCenteringGame < Gosu::Window
         @selected_option = (@selected_option + 1) % @home_options.length
       when Gosu::KB_RETURN
         case @selected_option
-        when 0
+        when 0  # Play
           @start_sound.play  
           @state = :playing
           reset_game
           play_random_bgm
-        when 1
+        when 1  # Credits
+          @state = :credits
+        when 2  # Exit
           close
         end
+      end
+    when :credits
+      case id
+      when Gosu::KB_UP
+        @credits_selected = (@credits_selected - 1) % @credits_options.length
+      when Gosu::KB_DOWN
+        @credits_selected = (@credits_selected + 1) % @credits_options.length
+      when Gosu::KB_RETURN
+        if system('open', @credits_options[@credits_selected][:url]) # For macOS
+          # Success
+        elsif system('start', @credits_options[@credits_selected][:url]) # For Windows
+          # Success
+        elsif system('xdg-open', @credits_options[@credits_selected][:url]) # For Linux
+          # Success
+        end
+      when Gosu::KB_ESCAPE
+        @state = :home
       end
     when :playing
       case id
@@ -295,6 +326,8 @@ class DivCenteringGame < Gosu::Window
       draw_home_screen
     when :playing
       draw_game_screen
+    when :credits
+      draw_credits_screen
     end
   end
 
@@ -337,10 +370,10 @@ class DivCenteringGame < Gosu::Window
 
     # Menu options
     @home_options.each_with_index do |option, index|
-      color = index == @selected_option ? Gosu::Color::RED : Gosu::Color::BLACK
+      color = index == @selected_option ? Gosu::Color::GREEN : Gosu::Color::GRAY
       @score_font.draw_text(
         option,
-        width / 2 - 30,
+        width / 2 - 33,
         height / 2 + index * 50,
         1, 1, 1, color
       )
@@ -488,6 +521,47 @@ class DivCenteringGame < Gosu::Window
       "SPACE to Place Div",
       width / 2 - 75, height - 50,
       2, 1, 1, Gosu::Color::BLACK
+    )
+  end
+
+  def draw_credits_screen
+    @main_menu_texture.draw(
+      0, 0, 0,
+      width.to_f / @main_menu_texture.width,
+      height.to_f / @main_menu_texture.height,
+      Gosu::Color::WHITE
+    )
+
+    title_text = "Credits"
+    title_width = @game_over_font.text_width(title_text)
+    @game_over_font.draw_text(
+      title_text,
+      width / 2 - title_width / 2,
+      height / 3,
+      1, 1, 1, Gosu::Color::WHITE
+    )
+
+    @credits_options.each_with_index do |credit, index|
+      color = index == @credits_selected ? Gosu::Color::RED : Gosu::Color::BLACK
+      @score_font.draw_text(
+        credit[:name],
+        width / 2 - 50,
+        height / 2 + index * 50,
+        1, 1, 1, color
+      )
+    end
+
+    @score_font.draw_text(
+      "Press ESC to go back",
+      width / 2 - 100,
+      height * 3/4,
+      1, 1, 1, Gosu::Color::WHITE
+    )
+    @score_font.draw_text(
+      "Press Enter to know more",
+      width / 2 - 120,
+      height * 5/6,
+      1, 1, 1, Gosu::Color::WHITE
     )
   end
 end
