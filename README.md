@@ -59,7 +59,7 @@ To build this masterpiece into a Windows executable (because some people just wa
 bundle install
 ```
 ```bash
-ocran main.rb --windows --icon C:\Users\$USER\<dir>\game\assets\images\logo.ico --output StackOverflowed --verbose       
+ocran main.rb --windows --icon C:\Users\$USER\<dir>\game\assets\images\logo.ico --output StackOverflowed.exe --verbose       
 ```
 ---
 
