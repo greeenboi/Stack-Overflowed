@@ -1,6 +1,8 @@
 require 'gosu'
 
 class DivCenteringGame < Gosu::Window
+  attr_reader :score, :state, :game_over, :divs
+  
   def initialize
     super 1024, 600, false  
     self.caption = "Stack Overflowed"
