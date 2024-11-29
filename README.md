@@ -14,6 +14,11 @@ _The CSS you wrote vs. How it renders_
 - **Align those divs** like a CSS wizard 🧙‍♂️
 - Dodge the terrifying **`overflow: hidden;`** monster 👻
 - **Score points** by stacking divs without causing a layout apocalypse! 💀
+  
+
+https://github.com/user-attachments/assets/3c3e5384-23d0-46f5-9847-4fe1b31bbdcf
+
+
 
 ## 🛠️ Features
 
