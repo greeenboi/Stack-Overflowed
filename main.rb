@@ -48,6 +48,14 @@ class DivCenteringGame < Gosu::Window
     @game_width = 600   # Increased from 400
     @game_x_start = (width - @game_width) / 2
 
+    # Background Music
+    @bg_tracks = [
+      Gosu::Song.new('assets/bgm1.wav'),
+      Gosu::Song.new('assets/bgm2.wav'),
+      # Gosu::Song.new('assets/bgm3.mp3')
+    ]
+    @current_track = nil
+
     # Spawn first moving div
     @initial_width = 500  # Start with wide platforms
     @min_width = 50      # Minimum platform width before game over
@@ -56,6 +64,17 @@ class DivCenteringGame < Gosu::Window
     @state = :home
     @home_options = ['Play', 'Exit']
     @selected_option = 0
+  end
+
+  def play_random_bgm
+    @current_track&.stop
+    @current_track = @bg_tracks.sample
+    @current_track.play(true) # true means loop
+  end
+
+  def stop_bgm
+    @current_track&.stop
+    @current_track = nil
   end
 
   def spawn_moving_div
@@ -111,6 +130,7 @@ class DivCenteringGame < Gosu::Window
           @start_sound.play  # Add this line
           @state = :playing
           reset_game
+          play_random_bgm
         when 1
           close
         end
@@ -128,7 +148,7 @@ class DivCenteringGame < Gosu::Window
   end
 
   def play_fail_sound
-    sounds = [@fail_sound2, @fail_sound3]
+    sounds = [@fail_sound, @fail_sound3]
     sounds.sample.play
   end
 
@@ -151,10 +171,12 @@ class DivCenteringGame < Gosu::Window
       
       if @current_div[:width] < @min_width
         @game_over = true
+        stop_bgm
         play_fail_sound  # Changed from direct sound play to using the new method
       end
     else
       @game_over = true
+      stop_bgm
       play_fail_sound  # Changed from direct sound play to using the new method
     end
   end
@@ -239,6 +261,7 @@ class DivCenteringGame < Gosu::Window
     @start_sound.play  
     spawn_moving_div
     @state = :playing
+    play_random_bgm
   end
 
   def draw
@@ -310,7 +333,7 @@ class DivCenteringGame < Gosu::Window
 
     # Title
     @title_font.draw_text(
-      "Div Centering Tower",
+      "Stack Overflowed",
       width / 2 - 100, 20, 2,
       1, 1, Gosu::Color::BLACK
     )
